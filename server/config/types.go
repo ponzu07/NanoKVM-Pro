@@ -37,6 +37,9 @@ type Turn struct {
 	TurnAddr string `yaml:"turnAddr"`
 	TurnUser string `yaml:"turnUser"`
 	TurnCred string `yaml:"turnCred"`
+
+	CloudflareKeyID    string `yaml:"cloudflareKeyId"`
+	CloudflareAPIToken string `yaml:"cloudflareApiToken"`
 }
 
 type Hardware struct {

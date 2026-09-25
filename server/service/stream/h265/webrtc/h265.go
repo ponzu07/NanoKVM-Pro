@@ -2,6 +2,7 @@ package webrtc
 
 import (
 	"NanoKVM-Server/config"
+	"NanoKVM-Server/service/stream/cfturn"
 	"net/http"
 	"sync"
 	"time"
@@ -125,6 +126,8 @@ func createICEServers() []webrtc.ICEServer {
 			Credential: conf.Turn.TurnCred,
 		})
 	}
+
+	iceServers = append(iceServers, cfturn.ICEServers()...)
 
 	return iceServers
 }
