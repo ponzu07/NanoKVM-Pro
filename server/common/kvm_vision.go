@@ -48,6 +48,13 @@ const (
 var (
 	kvmVision     *KvmVision
 	kvmVisionOnce sync.Once
+
+	mjpegReadErrorLog = newReadErrorLog("MJPEG")
+	h264ReadErrorLog  = newReadErrorLog("H.264")
+	h265ReadErrorLog  = newReadErrorLog("H.265")
+	audioReadErrorLog = newReadErrorLog("audio")
+
+	videoStallGuard = newEncoderStallGuard()
 )
 
 func GetKvmVision() *KvmVision {
@@ -98,6 +105,11 @@ func (k *KvmVision) ReadMjpeg(width uint16, height uint16, quality uint16) (data
 		dataSize C.uint32_t
 	)
 
+	if videoStallGuard.paused() {
+		result = int(C.IMG_NOT_EXIST)
+		return
+	}
+
 	result = int(C.kvmv_read_img(
 		C.uint16_t(width),
 		C.uint16_t(height),
@@ -106,8 +118,9 @@ func (k *KvmVision) ReadMjpeg(width uint16, height uint16, quality uint16) (data
 		&kvmData,
 		&dataSize,
 	))
+	videoStallGuard.observe(result)
 	if result < 0 {
-		log.Errorf("failed to read MJPEG: %v", result)
+		mjpegReadErrorLog.failed(result)
 		return
 	}
 	if kvmData == nil || dataSize == 0 {
@@ -124,6 +137,11 @@ func (k *KvmVision) ReadH264(width uint16, height uint16, bitRate uint16) (data 
 		dataSize C.uint32_t
 	)
 
+	if videoStallGuard.paused() {
+		result = int(C.IMG_NOT_EXIST)
+		return
+	}
+
 	result = int(C.kvmv_read_img(
 		C.uint16_t(width),
 		C.uint16_t(height),
@@ -132,8 +150,9 @@ func (k *KvmVision) ReadH264(width uint16, height uint16, bitRate uint16) (data 
 		&kvmData,
 		&dataSize,
 	))
+	videoStallGuard.observe(result)
 	if result < 0 {
-		log.Errorf("failed to read H.264: %d", result)
+		h264ReadErrorLog.failed(result)
 		return
 	}
 	if kvmData == nil || dataSize == 0 {
@@ -150,6 +169,11 @@ func (k *KvmVision) ReadH265(width uint16, height uint16, bitRate uint16) (data 
 		dataSize C.uint32_t
 	)
 
+	if videoStallGuard.paused() {
+		result = int(C.IMG_NOT_EXIST)
+		return
+	}
+
 	result = int(C.kvmv_read_img(
 		C.uint16_t(width),
 		C.uint16_t(height),
@@ -158,8 +182,9 @@ func (k *KvmVision) ReadH265(width uint16, height uint16, bitRate uint16) (data 
 		&kvmData,
 		&dataSize,
 	))
+	videoStallGuard.observe(result)
 	if result < 0 {
-		log.Errorf("failed to read H.265: %d", result)
+		h265ReadErrorLog.failed(result)
 		return
 	}
 	if kvmData == nil || dataSize == 0 {
@@ -178,7 +203,7 @@ func (k *KvmVision) ReadAudio() (data []byte, result int) {
 
 	result = int(C.kvmv_read_audio(&kvmData, &dataSize))
 	if result < 0 {
-		log.Errorf("failed to read audio: %d", result)
+		audioReadErrorLog.failed(result)
 		return
 	}
 	if kvmData == nil || dataSize == 0 {
