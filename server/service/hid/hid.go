@@ -143,6 +143,7 @@ func (h *Hid) WriteHid1(data []byte) {
 }
 
 func (h *Hid) WriteHid2(data []byte) {
+	data = pickAbsReport(data)
 	deadline := time.Now().Add(8 * time.Millisecond)
 
 	h.mouseMutex.Lock()
